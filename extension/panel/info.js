@@ -4,7 +4,6 @@ import * as skills from "./skills.js";
 import * as ctx from "./context.js";
 import * as motion from "./motion.js";
 import { makeSortable } from "./sortable.js";
-import * as tidy from "./tidy.js";
 
 const KEY_PROVIDERS = [
   { name: "anthropic", label: "Anthropic", placeholder: "sk-ant-…", url: "https://console.anthropic.com/settings/keys" },
@@ -132,65 +131,6 @@ function browseToggle() {
   return el("label", { class: "toggle" }, box,
     el("span", {}, el("strong", {}, "Let the chat browse (read-only)"),
       el("small", {}, "It can list and read your tabs, open links in a background tab, and load more YouTube comments. It never clicks or types. Links that haven't appeared in the chat ask first. Works with Claude Code and API-key models.")));
-}
-
-// ---------- tidy tabs ----------
-
-const TIDY_LEVELS = [
-  ["broad", "Broad", "A few big groups first (Dev, Video, Shopping…), then topics and sites."],
-  ["balanced", "Balanced", "Topics shared by several tabs, then sites, then kinds of site."],
-  ["specific", "Specific", "Only close matches: shared topics and same-site tabs."],
-];
-
-function tidySection() {
-  const bar = el("div", { class: "media-filter tidy-levels", role: "group", "aria-label": "How fine the groups are" });
-  const note = el("p", { class: "hint" });
-  const draw = () => {
-    const current = localStorage.getItem("tidyLevel") || "balanced";
-    bar.replaceChildren(...TIDY_LEVELS.map(([id, label]) =>
-      el("button", { type: "button", class: id === current ? "on" : "", "aria-pressed": String(id === current), onclick: () => (localStorage.setItem("tidyLevel", id), draw()) }, label)));
-    note.textContent = TIDY_LEVELS.find(([id]) => id === current)[2];
-  };
-  draw();
-
-  // Never tidy: Dia's favorites look like any other tab to extensions, so they're marked here.
-  const keepList = el("div", { class: "keep-list" });
-  const drawKeep = async () => {
-    const { neverTidy: k = {} } = await chrome.storage.local.get("neverTidy");
-    const rows = [
-      ...(k.sites || []).map((s) => ["site", s, `${s} · whole site`]),
-      ...(k.pages || []).map((p) => ["page", p, p.replace(/^https?:\/\/(www\.)?/, "")]),
-    ];
-    keepList.replaceChildren(...(rows.length
-      ? rows.map(([kind, value, label]) => el("div", { class: "keep-row" }, el("span", {}, label),
-          el("button", { type: "button", title: "Allow tidying again", "aria-label": `Allow tidying ${label}`, onclick: async () => (await tidy.allowTidy({ [kind]: value }), drawKeep()) }, "✕")))
-      : [el("p", { class: "hint" }, "Nothing yet.")]));
-  };
-  drawKeep();
-  const site = el("input", { placeholder: "Add a site, e.g. music.youtube.com", autocomplete: "off" });
-  const add = el("form", { class: "keep-add", onsubmit: async (e) => {
-    e.preventDefault();
-    if (!site.value.trim()) return;
-    await tidy.neverTidy({ site: site.value.trim() });
-    site.value = "";
-    drawKeep();
-  } }, site, el("button", { type: "submit" }, "Add"));
-  const thisTab = el("button", { type: "button", class: "keep-this", onclick: async () => {
-    const t = await ctx.activeTab();
-    if (t && /^https?:/.test(t.url)) await tidy.neverTidy({ tab: t });
-    drawKeep();
-  } }, "Never tidy the tab you're on");
-
-  return [
-    el("p", { class: "hint" }, "⚡ → Tools → Tidy tabs sorts this window's loose tabs into named groups, worked out on this Mac from their titles and sites (no AI, no tokens). Pinned tabs, grouped tabs, and mail, calendar and chat stay where they are. Every tidy can be undone."),
-    bar,
-    note,
-    el("h3", {}, "Never tidy"),
-    el("p", { class: "hint" }, "Dia's favorites look like ordinary tabs to extensions, so mark them here (or right-click a page → Lumen → Never tidy this tab). Tabs in Dia's sidebar folders are always left alone."),
-    thisTab,
-    keepList,
-    add,
-  ];
 }
 
 // ---------- skills ----------
@@ -361,7 +301,6 @@ export function renderInfo(container, deps) {
       el("h3", {}, "Login providers"), ...loginsSection(deps)),
     section("skills", "Skills", ...skillsSection()),
     section("downloads", "PDFs & downloads", ...downloadsSection(deps)),
-    section("tidy", "Tidy tabs", ...tidySection()),
     section("guide", "Features & guide",
       el("dl", { class: "guide" }, ...GUIDE.flatMap(([t, d]) => [el("dt", {}, t), el("dd", {}, d)]))),
     section("about", "About",
