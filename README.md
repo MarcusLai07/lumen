@@ -165,4 +165,12 @@ Upgrading from BYO Sidebar? Run the installer: it moves your keys and caches, an
 
 </details>
 
+## Support
+
+Lumen is free and open source. If it's made your browsing better and you'd like to chip in, you can sponsor the project — from anywhere, by card:
+
+[**❤ Sponsor on GitHub**](https://github.com/sponsors/MarcusLai07)
+
+Every bit keeps the updates coming. Thank you! ✦
+
 <sub>Not affiliated with The Browser Company or Dia. MIT licensed. Motion by [anime.js](https://animejs.com) (MIT).</sub>
